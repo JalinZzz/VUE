@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>测试平台 - 测试套件管理 | 执行模式开关</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- 字体 Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+            color: #0f172a;
+            padding: 28px 32px;
+        }
+
+        .platform-container {
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        /* 头部 */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+            gap: 16px;
+        }
+        .title-section h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1e293b, #2d3a4e);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+        .title-section p {
+            font-size: 0.85rem;
+            color: #475569;
+            margin-top: 6px;
+        }
+
+        /* 筛选栏：项目/地区行 + 搜索行 */
+        .filter-section {
+            background: white;
+            border-radius: 20px;
+            padding: 16px 24px;
+            margin-bottom: 28px;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .project-region-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .select-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f8fafc;
+            padding: 5px 16px;
+            border-radius: 40px;
+            border: 1px solid #e2e8f0;
+        }
+        .select-item label {
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        .select-item select {
+            background: transparent;
+            border: none;
+            padding: 8px 0;
+            font-weight: 500;
+            outline: none;
+            cursor: pointer;
+        }
+        .search-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 40px;
+            padding: 5px 18px;
+            gap: 12px;
+            flex: 1;
+            max-width: 400px;
+        }
+        .search-box input {
+            border: none;
+            background: transparent;
+            padding: 8px 0;
+            width: 100%;
+            outline: none;
+            font-size: 0.85rem;
+        }
+        .global-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .filter-chip {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 40px;
+            padding: 5px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .filter-chip label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #334155;
+        }
+        /* 开关样式 */
+        .switch-wrapper {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #f8fafc;
+            padding: 4px 16px;
+            border-radius: 40px;
+            border: 1px solid #e2e8f0;
+        }
+        .switch-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #334155;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: 0.3s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #3b82f6;
+        }
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+        .switch-status {
+            font-size: 0.7rem;
+            font-weight: 500;
+            min-width: 48px;
+        }
+        .btn-primary {
+            background: #3b82f6;
+            border: none;
+            padding: 9px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            color: white;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        .btn-outline {
+            background: white;
+            border: 1px solid #cbd5e1;
+            padding: 8px 16px;
+            border-radius: 32px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .icon-btn {
+            background: transparent;
+            border: none;
+            font-size: 0.8rem;
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            transition: 0.1s;
+        }
+        .icon-btn.edit { color: #3b82f6; }
+        .icon-btn.edit:hover { background: #eef2ff; }
+        .icon-btn.run { color: #10b981; }
+        .icon-btn.run:hover { background: #e0f2e9; }
+        .icon-btn.delete { color: #ef4444; }
+        .icon-btn.delete:hover { background: #fee2e2; }
+        .icon-btn.cases { color: #8b5cf6; }
+        .icon-btn.cases:hover { background: #ede9fe; }
+
+        /* 表格卡片 */
+        .table-card {
+            background: white;
+            border-radius: 24px;
+            border: 1px solid #edf2f7;
+            overflow-x: auto;
+        }
+        .suite-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 1000px;
+        }
+        .suite-table th {
+            text-align: left;
+            padding: 16px 16px;
+            background: #fafcff;
+            border-bottom: 1px solid #e9edf2;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .suite-table td {
+            padding: 16px 16px;
+            border-bottom: 1px solid #f0f2f5;
+            vertical-align: middle;
+        }
+        .suite-table tr:hover { background: #faf9fe; }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .status-success { background: #e0f2e9; color: #15803d; }
+        .status-fail { background: #fee9e6; color: #b91c1c; }
+        .status-idle { background: #eef2ff; color: #4338ca; }
+        .action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+        .pagination {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 16px 24px;
+            gap: 16px;
+            border-top: 1px solid #edf2f7;
+            flex-wrap: wrap;
+        }
+        .page-item {
+            padding: 6px 12px;
+            border-radius: 30px;
+            background: #f1f5f9;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .page-item.active { background: #3b82f6; color: white; }
+        .page-item.disabled { opacity: 0.4; cursor: not-allowed; }
+        .jump-input { width: 60px; padding: 6px; border-radius: 20px; border: 1px solid #cbd5e1; text-align: center; }
+
+        /* 模态框（新建/编辑，无执行配置项） */
+        .modal-mask {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-container {
+            background: white;
+            width: 520px;
+            max-width: 95%;
+            border-radius: 28px;
+            padding: 24px;
+            box-shadow: 0 25px 40px -12px rgba(0,0,0,0.3);
+        }
+        .modal-container.large {
+            width: 1200px;
+            max-width: 95%;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eef2ff;
+        }
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-group label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 20px;
+            border: 1px solid #cbd5e1;
+            font-family: inherit;
+        }
+        .flex-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        /* 双表格用例管理 */
+        .cases-dual-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        .case-panel {
+            background: #fefefe;
+            border: 1px solid #edf2f8;
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel-header {
+            padding: 14px 20px;
+            background: #fafdff;
+            border-bottom: 1px solid #eef2ff;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-search {
+            padding: 12px 16px;
+            border-bottom: 1px solid #eef2ff;
+        }
+        .panel-search input {
+            width: 100%;
+            padding: 8px 14px;
+            border-radius: 30px;
+            border: 1px solid #e2e8f0;
+        }
+        .case-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+        .case-table th {
+            text-align: left;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-bottom: 1px solid #eef2ff;
+        }
+        .case-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .priority-badge {
+            display: inline-block;
+            padding: 2px 12px;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .priority-high { background: #fee2e2; color: #b91c1c; }
+        .priority-medium { background: #fff1e5; color: #b45309; }
+        .priority-low { background: #e0f2e9; color: #15803d; }
+        .action-link {
+            color: #3b82f6;
+            cursor: pointer;
+            font-weight: 500;
+            background: none;
+            border: none;
+        }
+        .action-link.remove { color: #ef4444; }
+        .action-link:hover { text-decoration: underline; }
+        .empty-row td {
+            text-align: center;
+            padding: 32px !important;
+            color: #94a3b8;
+        }
+        .footer-info {
+            margin-top: 24px;
+            font-size: 0.7rem;
+            text-align: center;
+            color: #6c7a91;
+        }
+        hr {
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div class="platform-container">
+        <div class="page-header">
+            <div class="title-section">
+                <h1><i class="fas fa-flask"></i> 测试套件管理</h1>
+                <p>组合测试用例 · 执行模式开关 · Chrome浏览器 · Playwright引擎</p>
+            </div>
+        </div>
+
+        <!-- 筛选区域：项目/地区 + 搜索栏，执行模式为开关 -->
+        <div class="filter-section">
+            <div class="project-region-row">
+                <div class="select-item">
+                    <label><i class="fas fa-folder"></i> 项目</label>
+                    <select v-model="selectedProjectId">
+                        <option v-for="p in projects" :value="p.id">{{ p.name }}</option>
+                    </select>
+                </div>
+                <div class="select-item">
+                    <label><i class="fas fa-globe"></i> 地区</label>
+                    <select v-model="selectedRegionId">
+                        <option v-for="r in regions" :value="r.id">{{ r.name }}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="search-row">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="搜索套件名称或描述" v-model="searchKeyword">
+                </div>
+                <div class="global-filters">
+                    <!-- 执行模式开关 -->
+                    <div class="switch-wrapper">
+                        <span class="switch-label"><i class="fas fa-display"></i> 执行模式</span>
+                        <label class="switch">
+                            <input type="checkbox" v-model="headfulModeEnabled">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="switch-status">{{ headfulModeEnabled ? '有头模式' : '无头模式' }}</span>
+                    </div>
+                    <div class="filter-chip">
+                        <label><i class="fab fa-chrome"></i> 浏览器</label>
+                        <select v-model="globalBrowser">
+                            <option value="">全部</option>
+                            <option value="Chrome">Chrome</option>
+                        </select>
+                    </div>
+                    <div class="filter-chip">
+                        <label><i class="fas fa-cogs"></i> 测试引擎</label>
+                        <select v-model="globalTestEngine">
+                            <option value="">全部</option>
+                            <option value="Playwright">Playwright</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary" @click="openCreateSuiteModal">
+                        <i class="fas fa-plus-circle"></i> 新增套件
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 套件表格 -->
+        <div class="table-card">
+            <table class="suite-table">
+                <thead>
+                    <tr>
+                        <th>套件名称</th><th>描述</th><th>用例数</th>
+                        <th>执行状态</th><th>通过数</th><th>失败数</th>
+                        <th>创建时间</th><th>更新时间</th><th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="suite in paginatedSuites" :key="suite.id">
+                        <td><strong>{{ suite.name }}</strong></td>
+                        <td>{{ suite.description || '—' }}</td>
+                        <td>{{ suite.caseIds.length }}</td>
+                        <td><span :class="['status-badge', getStatusClass(suite)]">{{ getExecStatusText(suite) }}</span></td>
+                        <td>{{ suite.lastRunPass ?? '-' }}</td>
+                        <td>{{ suite.lastRunFail ?? '-' }}</td>
+                        <td>{{ formatDate(suite.createTime) }}</td>
+                        <td>{{ formatDate(suite.updateTime) }}</td>
+                        <td class="action-buttons">
+                            <button class="icon-btn edit" @click="editSuite(suite)"><i class="fas fa-edit"></i> 编辑</button>
+                            <button class="icon-btn run" @click="runSuite(suite)"><i class="fas fa-play"></i> 运行</button>
+                            <button class="icon-btn cases" @click="manageSuiteCases(suite)"><i class="fas fa-list-check"></i> 用例</button>
+                            <button class="icon-btn delete" @click="confirmDeleteSuite(suite)"><i class="fas fa-trash-alt"></i> 删除</button>
+                        </td>
+                    </tr>
+                    <tr v-if="filteredSuites.length === 0">
+                        <td colspan="9" style="text-align:center; padding:48px;">暂无测试套件，点击“新增套件”开始创建</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="pagination" v-if="filteredSuites.length > 0">
+                <div>共 {{ filteredSuites.length }} 条</div>
+                <div class="page-control">
+                    <div class="page-item" :class="{ disabled: currentPage === 1 }" @click="changePage(currentPage-1)">上一页</div>
+                    <div v-for="page in visiblePages" :key="page" class="page-item" :class="{ active: currentPage === page }" @click="changePage(page)">{{ page }}</div>
+                    <div class="page-item" :class="{ disabled: currentPage === totalPages }" @click="changePage(currentPage+1)">下一页</div>
+                </div>
+                <div class="jump">
+                    <span>前往</span>
+                    <input type="number" v-model.number="jumpPage" class="jump-input" @keyup.enter="goToPage">
+                    <span>页</span>
+                </div>
+                <select v-model="pageSize" style="border-radius:30px; padding:5px 8px;">
+                    <option>10</option><option>20</option><option>50</option>
+                </select>
+                <span>条/页</span>
+            </div>
+        </div>
+        <div class="footer-info"><i class="fas fa-info-circle"></i> 执行模式开关：开启为有头模式，关闭为无头模式。浏览器默认Chrome，引擎默认Playwright。</div>
+    </div>
+
+    <!-- 新建/编辑套件模态框（无执行配置选项） -->
+    <div class="modal-mask" v-if="suiteModalVisible" @click.self="closeSuiteModal">
+        <div class="modal-container">
+            <div class="modal-header" style="border:none; padding:0 0 12px 0;">
+                <span>{{ isEditMode ? '编辑测试套件' : '新建测试套件' }}</span>
+                <i class="fas fa-times" style="cursor:pointer" @click="closeSuiteModal"></i>
+            </div>
+            <div class="form-group"><label>套件名称 *</label><input v-model="suiteForm.name" placeholder="例如：携程酒店预定"></div>
+            <div class="form-group"><label>描述</label><textarea v-model="suiteForm.description" rows="2" placeholder="简要描述套件用途"></textarea></div>
+            <div class="flex-buttons"><button class="btn-outline" @click="closeSuiteModal">取消</button><button class="btn-primary" @click="saveSuite">保存</button></div>
+        </div>
+    </div>
+
+    <!-- 用例管理模态框（双表格） -->
+    <div class="modal-mask" v-if="caseManagerVisible" @click.self="closeCaseManager">
+        <div class="modal-container large">
+            <div class="modal-header">
+                <span><i class="fas fa-cubes"></i> 管理测试用例 · {{ managingSuite?.name }}</span>
+                <i class="fas fa-times" style="cursor:pointer" @click="closeCaseManager"></i>
+            </div>
+            <div class="cases-dual-layout">
+                <div class="case-panel">
+                    <div class="panel-header">
+                        <span><i class="fas fa-database"></i> 可用用例</span>
+                        <span class="badge" style="background:#eef2ff; padding:2px 10px; border-radius:20px;">{{ availableCasesFiltered.length }}</span>
+                    </div>
+                    <div class="panel-search">
+                        <input type="text" placeholder="搜索用例名称" v-model="availableSearchText">
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table class="case-table">
+                            <thead><tr><th>用例名称</th><th>优先级</th><th>操作</th></tr></thead>
+                            <tbody>
+                                <tr v-for="tc in availableCasesFiltered" :key="tc.id">
+                                    <td>{{ tc.name }}</td>
+                                    <td><span :class="['priority-badge', getPriorityClass(tc.priority)]">{{ tc.priorityText }}</span></td>
+                                    <td><button class="action-link" @click="addCaseToManagingSuite(tc)">添加</button></td>
+                                </tr>
+                                <tr v-if="availableCasesFiltered.length === 0"><td colspan="3" class="empty-row">暂无可用用例</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="case-panel">
+                    <div class="panel-header">
+                        <span><i class="fas fa-check-circle"></i> 已选用用例 ({{ selectedCasesFiltered.length }})</span>
+                    </div>
+                    <div class="panel-search">
+                        <input type="text" placeholder="搜索已选用例" v-model="selectedSearchText">
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table class="case-table">
+                            <thead><tr><th>用例名称</th><th>优先级</th><th>操作</th></tr></thead>
+                            <tbody>
+                                <tr v-for="tc in selectedCasesFiltered" :key="tc.id">
+                                    <td>{{ tc.name }}</td>
+                                    <td><span :class="['priority-badge', getPriorityClass(tc.priority)]">{{ tc.priorityText }}</span></td>
+                                    <td><button class="action-link remove" @click="removeCaseFromManagingSuite(tc.id)">移除</button></td>
+                                </tr>
+                                <tr v-if="selectedCasesFiltered.length === 0"><td colspan="3" class="empty-row">暂无已选用例，从左侧添加</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="flex-buttons"><button class="btn-primary" @click="closeCaseManager">完成</button></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script>
+    const { createApp, ref, computed, watch, onMounted } = Vue;
+
+    createApp({
+        setup() {
+            const projects = ref([
+                { id: 1, name: "核心交易系统" },
+                { id: 2, name: "用户中心平台" }
+            ]);
+            const regions = ref([
+                { id: 1, name: "华东区" },
+                { id: 2, name: "华南区" }
+            ]);
+            const selectedProjectId = ref(1);
+            const selectedRegionId = ref(1);
+            // 执行模式开关: true = 有头(headful), false = 无头(headless)
+            const headfulModeEnabled = ref(true);
+            // 浏览器和引擎筛选默认为空（全部），但默认展示Chrome/Playwright的套件，且筛选时按实际值过滤
+            const globalBrowser = ref("");
+            const globalTestEngine = ref("");
+            const searchKeyword = ref("");
+            const testSuites = ref([]);
+            
+            // 用例库
+            const testCasesMap = ref({
+                "1_1": [
+                    { id: "TC101", name: "酒店全流程", description: "完整预订流程", priority: "medium", priorityText: "中" },
+                    { id: "TC102", name: "目的地搜索", description: "关键词检索", priority: "medium", priorityText: "中" },
+                    { id: "TC103", name: "酒店搜索_copy", description: "副本测试", priority: "medium", priorityText: "中" },
+                    { id: "TC104", name: "酒店搜索", description: "基础搜索", priority: "medium", priorityText: "中" },
+                    { id: "TC105", name: "订单支付高风险", description: "并发支付", priority: "high", priorityText: "高" }
+                ],
+                "1_2": [
+                    { id: "TC201", name: "华南酒店搜索", description: "地域过滤", priority: "high", priorityText: "高" },
+                    { id: "TC202", name: "价格排序", description: "升序降序", priority: "low", priorityText: "低" },
+                    { id: "TC203", name: "退款流程", description: "退款补偿", priority: "medium", priorityText: "中" }
+                ],
+                "2_1": [
+                    { id: "TC301", name: "手机号注册", description: "短信验证", priority: "high", priorityText: "高" },
+                    { id: "TC302", name: "权限角色绑定", description: "RBAC", priority: "medium", priorityText: "中" }
+                ],
+                "2_2": [
+                    { id: "TC401", name: "多租户隔离", description: "数据隔离", priority: "high", priorityText: "高" },
+                    { id: "TC402", name: "资料加密", description: "敏感字段", priority: "medium", priorityText: "中" }
+                ]
+            });
+
+            // 分页
+            const currentPage = ref(1);
+            const pageSize = ref(20);
+            const jumpPage = ref(1);
+            
+            // 模态框
+            const suiteModalVisible = ref(false);
+            const isEditMode = ref(false);
+            const suiteForm = ref({ id: null, name: "", description: "" });
+            const caseManagerVisible = ref(false);
+            const managingSuite = ref(null);
+            const availableSearchText = ref("");
+            const selectedSearchText = ref("");
+
+            // 根据开关生成全局执行模式筛选值
+            const globalExecutionModeValue = computed(() => headfulModeEnabled.value ? "headful" : "headless");
+
+            // 过滤套件
+            const filteredSuites = computed(() => {
+                let list = testSuites.value.filter(s => 
+                    s.projectId === selectedProjectId.value && s.regionId === selectedRegionId.value
+                );
+                // 执行模式筛选（根据开关）
+                list = list.filter(s => s.executionMode === globalExecutionModeValue.value);
+                if (globalBrowser.value) {
+                    list = list.filter(s => s.browser === globalBrowser.value);
+                }
+                if (globalTestEngine.value) {
+                    list = list.filter(s => s.testEngine === globalTestEngine.value);
+                }
+                if (searchKeyword.value.trim()) {
+                    const kw = searchKeyword.value.trim().toLowerCase();
+                    list = list.filter(s => s.name.toLowerCase().includes(kw) || (s.description && s.description.toLowerCase().includes(kw)));
+                }
+                return list;
+            });
+            const totalPages = computed(() => Math.ceil(filteredSuites.value.length / pageSize.value) || 1);
+            const paginatedSuites = computed(() => {
+                const start = (currentPage.value - 1) * pageSize.value;
+                return filteredSuites.value.slice(start, start + pageSize.value);
+            });
+            const visiblePages = computed(() => {
+                let total = totalPages.value, current = currentPage.value, delta = 2, range = [];
+                for (let i = 1; i <= total; i++) {
+                    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) range.push(i);
+                    else if (range[range.length-1] !== '...') range.push('...');
+                }
+                return range.filter(v => v !== '...');
+            });
+
+            // 用例管理相关
+            const currentSuiteCasesFull = computed(() => {
+                if (!managingSuite.value) return [];
+                const suite = managingSuite.value;
+                const key = `${suite.projectId}_${suite.regionId}`;
+                const allCases = testCasesMap.value[key] || [];
+                return allCases.filter(c => suite.caseIds.includes(c.id));
+            });
+            const availableCasesFull = computed(() => {
+                if (!managingSuite.value) return [];
+                const suite = managingSuite.value;
+                const key = `${suite.projectId}_${suite.regionId}`;
+                const allCases = testCasesMap.value[key] || [];
+                return allCases.filter(c => !suite.caseIds.includes(c.id));
+            });
+            const selectedCasesFiltered = computed(() => {
+                let list = currentSuiteCasesFull.value;
+                if (selectedSearchText.value.trim()) {
+                    const kw = selectedSearchText.value.trim().toLowerCase();
+                    list = list.filter(c => c.name.toLowerCase().includes(kw));
+                }
+                return list;
+            });
+            const availableCasesFiltered = computed(() => {
+                let list = availableCasesFull.value;
+                if (availableSearchText.value.trim()) {
+                    const kw = availableSearchText.value.trim().toLowerCase();
+                    list = list.filter(c => c.name.toLowerCase().includes(kw));
+                }
+                return list;
+            });
+
+            const getPriorityClass = (priority) => {
+                if (priority === 'high') return 'priority-high';
+                if (priority === 'medium') return 'priority-medium';
+                return 'priority-low';
+            };
+            const formatDate = (timestamp) => {
+                if (!timestamp) return '未知';
+                const d = new Date(timestamp);
+                return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+            };
+            const getExecStatusText = (suite) => {
+                if (suite.lastRunPass === null && suite.lastRunFail === null) return '未运行';
+                if (suite.lastRunFail === 0 && suite.lastRunPass > 0) return '成功';
+                if (suite.lastRunFail > 0) return '失败';
+                return '未运行';
+            };
+            const getStatusClass = (suite) => {
+                const status = getExecStatusText(suite);
+                if (status === '成功') return 'status-success';
+                if (status === '失败') return 'status-fail';
+                return 'status-idle';
+            };
+            const resetSuiteRunResult = (suite) => {
+                suite.lastRunPass = null;
+                suite.lastRunFail = null;
+            };
+
+            // 套件操作
+            const openCreateSuiteModal = () => {
+                isEditMode.value = false;
+                suiteForm.value = { id: null, name: "", description: "" };
+                suiteModalVisible.value = true;
+            };
+            const editSuite = (suite) => {
+                isEditMode.value = true;
+                suiteForm.value = { 
+                    id: suite.id, 
+                    name: suite.name, 
+                    description: suite.description || ""
+                };
+                suiteModalVisible.value = true;
+            };
+            const saveSuite = () => {
+                if (!suiteForm.value.name.trim()) return alert("请输入套件名称");
+                const now = Date.now();
+                if (isEditMode.value) {
+                    const idx = testSuites.value.findIndex(s => s.id === suiteForm.value.id);
+                    if (idx !== -1) {
+                        testSuites.value[idx].name = suiteForm.value.name.trim();
+                        testSuites.value[idx].description = suiteForm.value.description;
+                        testSuites.value[idx].updateTime = now;
+                    }
+                } else {
+                    const newId = `suite_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+                    testSuites.value.push({
+                        id: newId,
+                        name: suiteForm.value.name.trim(),
+                        description: suiteForm.value.description,
+                        projectId: selectedProjectId.value,
+                        regionId: selectedRegionId.value,
+                        caseIds: [],
+                        executionMode: "headful",   // 默认有头
+                        browser: "Chrome",          // 默认Chrome
+                        testEngine: "Playwright",   // 默认Playwright
+                        lastRunPass: null,
+                        lastRunFail: null,
+                        createTime: now,
+                        updateTime: now
+                    });
+                }
+                closeSuiteModal();
+            };
+            const closeSuiteModal = () => { suiteModalVisible.value = false; };
+            const confirmDeleteSuite = (suite) => {
+                if (confirm(`确认删除套件「${suite.name}」吗？`)) {
+                    const idx = testSuites.value.findIndex(s => s.id === suite.id);
+                    if (idx !== -1) testSuites.value.splice(idx, 1);
+                    if (filteredSuites.value.length === 0 && currentPage.value > 1) currentPage.value = 1;
+                }
+            };
+            const runSuite = (suite) => {
+                const total = suite.caseIds.length;
+                if (total === 0) { alert("套件内无测试用例，请先添加用例后再运行"); return; }
+                const passCount = Math.floor(Math.random() * (total + 1));
+                const failCount = total - passCount;
+                suite.lastRunPass = passCount;
+                suite.lastRunFail = failCount;
+                alert(`执行完成！ 通过: ${passCount} / 失败: ${failCount}\n模式: ${suite.executionMode === 'headful' ? '有头' : '无头'} | 浏览器: ${suite.browser} | 引擎: ${suite.testEngine}`);
+            };
+
+            // 用例管理
+            const manageSuiteCases = (suite) => {
+                managingSuite.value = suite;
+                availableSearchText.value = "";
+                selectedSearchText.value = "";
+                caseManagerVisible.value = true;
+            };
+            const addCaseToManagingSuite = (testCase) => {
+                if (!managingSuite.value) return;
+                const suite = managingSuite.value;
+                if (!suite.caseIds.includes(testCase.id)) {
+                    suite.caseIds.push(testCase.id);
+                    resetSuiteRunResult(suite);
+                    suite.updateTime = Date.now();
+                } else {
+                    alert("用例已在套件中");
+                }
+            };
+            const removeCaseFromManagingSuite = (caseId) => {
+                if (!managingSuite.value) return;
+                const suite = managingSuite.value;
+                const idx = suite.caseIds.indexOf(caseId);
+                if (idx !== -1) {
+                    suite.caseIds.splice(idx, 1);
+                    resetSuiteRunResult(suite);
+                    suite.updateTime = Date.now();
+                }
+            };
+            const closeCaseManager = () => {
+                caseManagerVisible.value = false;
+                managingSuite.value = null;
+            };
+
+            // 分页
+            const changePage = (page) => { if (page >=1 && page <= totalPages.value) { currentPage.value = page; jumpPage.value = page; } };
+            const goToPage = () => { let page = jumpPage.value; if (page >=1 && page <= totalPages.value) changePage(page); else jumpPage.value = currentPage.value; };
+            const resetPagination = () => { currentPage.value = 1; if (caseManagerVisible.value) closeCaseManager(); };
+            watch([selectedProjectId, selectedRegionId, headfulModeEnabled, globalBrowser, globalTestEngine, searchKeyword], () => resetPagination());
+
+            // Mock 初始化
+            const initMockSuites = () => {
+                if (testSuites.value.length === 0) {
+                    const now = Date.now();
+                    testSuites.value = [
+                        { id: "s1", name: "携程酒店预定", description: "酒店搜索全流程", projectId: 1, regionId: 1, caseIds: ["TC101","TC102"], lastRunPass: 0, lastRunFail: 2, createTime: new Date(2026,4,31).getTime(), updateTime: new Date(2026,4,31).getTime(), executionMode: "headful", browser: "Chrome", testEngine: "Playwright" },
+                        { id: "s2", name: "支付核心回归", description: "", projectId: 1, regionId: 1, caseIds: ["TC105"], lastRunPass: 1, lastRunFail: 0, createTime: new Date(2026,5,1).getTime(), updateTime: new Date(2026,5,1).getTime(), executionMode: "headless", browser: "Chrome", testEngine: "Playwright" },
+                        { id: "s3", name: "华南酒店搜索", description: "地域性测试", projectId: 1, regionId: 2, caseIds: ["TC201","TC202"], lastRunPass: null, lastRunFail: null, createTime: now, updateTime: now, executionMode: "headful", browser: "Chrome", testEngine: "Playwright" }
+                    ];
+                }
+            };
+            onMounted(() => { initMockSuites(); });
+
+            return {
+                projects, regions, selectedProjectId, selectedRegionId,
+                headfulModeEnabled, globalBrowser, globalTestEngine, searchKeyword,
+                testSuites, filteredSuites, paginatedSuites, currentPage, pageSize, totalPages, visiblePages, jumpPage,
+                suiteModalVisible, isEditMode, suiteForm, caseManagerVisible, managingSuite,
+                availableCasesFiltered, selectedCasesFiltered, availableSearchText, selectedSearchText,
+                formatDate, getExecStatusText, getStatusClass, getPriorityClass,
+                openCreateSuiteModal, editSuite, saveSuite, closeSuiteModal, confirmDeleteSuite,
+                runSuite, manageSuiteCases, addCaseToManagingSuite, removeCaseFromManagingSuite, closeCaseManager,
+                changePage, goToPage
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
