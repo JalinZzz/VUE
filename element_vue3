@@ -1,0 +1,635 @@
+<template>
+  <div class="flow-editor">
+    <!-- 页面头部：不可编辑名称 + 保存按钮 -->
+    <div class="editor-header">
+      <div class="page-name-area">
+        <span class="page-name-label"><i class="fas fa-file-alt"></i> 页面名称</span>
+        <input type="text" class="page-name-field" :value="pageName" disabled />
+        <span class="readonly-badge"><i class="fas fa-lock"></i> 只读</span>
+      </div>
+      <button class="save-btn" @click="handleSave">
+        <i class="fas fa-save"></i> 保存流程
+      </button>
+    </div>
+
+    <!-- 组合信息展示（示例固定内容，可通过props扩展） -->
+    <div class="info-section">
+      <div class="combo-row">
+        <div class="info-item">
+          <span class="info-label">组合名称</span>
+          <span class="info-value">{{ comboName }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">参数列表</span>
+          <div class="param-tags">
+            <span class="param-tag" v-for="param in params" :key="param">{{ param }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="desc-text">
+        <i class="fas fa-code-branch"></i>
+        支持If嵌套，可删除条件块，分支内可任意添加步骤。click/fill目标元素下拉选择，其他动作自由输入。
+      </div>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <div>
+        <button class="btn-primary" @click="addRootAction">
+          <i class="fas fa-plus-circle"></i> 添加步骤 (动作)
+        </button>
+        <button class="btn-outline" @click="addRootIf" style="margin-left:12px;">
+          <i class="fas fa-code-branch"></i> 添加If条件
+        </button>
+      </div>
+      <button class="btn-outline" @click="showPreview = true">
+        <i class="fas fa-eye"></i> 预览结构
+      </button>
+    </div>
+
+    <!-- 步骤列表容器（递归组件） -->
+    <div class="steps-container">
+      <StepList
+        :steps="localSteps"
+        @add-action="addActionToArray"
+        @add-if="addIfToArray"
+        @delete-step="deleteStepFromArray"
+      />
+    </div>
+
+    <div class="flow-note">
+      <span><i class="fas fa-info-circle"></i> If块可嵌套，每个If包含then分支和可选的else分支（点击“添加else”按钮）</span>
+      <span><i class="fas fa-mouse-pointer"></i> click/fill → 下拉选择元素；截图/等待元素 → 文本输入框</span>
+      <span><i class="fas fa-trash-alt"></i> 支持删除任意步骤或条件块</span>
+    </div>
+
+    <!-- 预览弹窗 -->
+    <Teleport to="body">
+      <div class="modal-mask" :class="{ active: showPreview }" @click.self="showPreview = false">
+        <div class="modal-content">
+          <div class="modal-header">流程结构预览</div>
+          <pre>{{ previewText }}</pre>
+          <div style="text-align:right; margin-top:16px;">
+            <button class="btn-outline" @click="showPreview = false">关闭</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, watch } from 'vue'
+
+// ---------- 预设常量 ----------
+const PRESET_ELEMENTS = [
+  "input_triggerEmail_content",
+  "pop_up_submit",
+  "#submit-button",
+  ".email-input",
+  "[data-test='login-btn']",
+  "button[type='submit']"
+]
+
+const ACTION_OPTIONS = [
+  { value: 'click', label: 'click (点击)', dropdownTarget: true },
+  { value: 'fill', label: 'fill (输入)', dropdownTarget: true },
+  { value: 'screenshot', label: 'screenshot (截图)', dropdownTarget: false },
+  { value: 'waitForElement', label: 'waitForElement (等待元素)', dropdownTarget: false },
+  { value: 'waitURL', label: 'waitURL (等待URL)', dropdownTarget: false },
+  { value: 'page', label: 'page (页面配置)', dropdownTarget: false },
+  { value: 'back', label: 'back (后退)', dropdownTarget: false }
+]
+
+// ---------- 工具函数 ----------
+let idCounter = 100
+const genId = () => ++idCounter
+
+// 创建动作
+const createAction = (kind = 'fill') => ({
+  id: genId(),
+  type: 'action',
+  actionKind: kind,
+  targetElement: (kind === 'click' || kind === 'fill') ? PRESET_ELEMENTS[0] : '',
+  value: '',
+  timeout: 5000,
+  continueOnError: false,
+  wait: ''
+})
+
+// 创建If块
+const createIfBlock = (condition = '新条件表达式') => ({
+  id: genId(),
+  type: 'if',
+  condition,
+  thenSteps: [],
+  elseSteps: null   // null 表示没有else分支
+})
+
+// 判断动作是否需要下拉目标元素
+const isDropdownAction = (kind) => kind === 'click' || kind === 'fill'
+
+// ---------- 组件 Props & Emits ----------
+const props = defineProps({
+  pageName: {
+    type: String,
+    default: '未命名流程'
+  },
+  comboName: {
+    type: String,
+    default: 'conditional_flow_nested'
+  },
+  params: {
+    type: Array,
+    default: () => ['email_user', 'list_url', 'element', 'CBG_switch']
+  },
+  initialSteps: {
+    type: Array,
+    default: null
+  }
+})
+
+const emit = defineEmits(['save'])
+
+// ---------- 内部状态 ----------
+const localSteps = ref([])
+
+// 预览相关
+const showPreview = ref(false)
+const previewText = computed(() => {
+  const format = (steps, indent = 0) => {
+    let res = ''
+    for (const s of steps) {
+      res += '  '.repeat(indent)
+      if (s.type === 'action') {
+        res += `⚙️ 动作: ${s.actionKind} → 目标:${s.targetElement || '-'} 值:${s.value || '-'}\n`
+      } else if (s.type === 'if') {
+        res += `🔀 If (${s.condition})\n`
+        res += '  '.repeat(indent + 1) + 'then分支:\n'
+        if (s.thenSteps.length) res += format(s.thenSteps, indent + 2)
+        else res += '  '.repeat(indent + 2) + '(空)\n'
+        if (s.elseSteps !== null) {
+          res += '  '.repeat(indent + 1) + 'else分支:\n'
+          if (s.elseSteps.length) res += format(s.elseSteps, indent + 2)
+          else res += '  '.repeat(indent + 2) + '(空)\n'
+        }
+      }
+    }
+    return res
+  }
+  return format(localSteps.value) || '暂无步骤'
+})
+
+// 初始化数据
+const initDemo = () => {
+  // 创建一个带嵌套If的示例
+  const demoIf = {
+    id: genId(),
+    type: 'if',
+    condition: 'email_user is not None',
+    thenSteps: [
+      createAction('fill'),
+      createAction('click'),
+      {
+        id: genId(),
+        type: 'if',
+        condition: 'CBG_switch == "on"',
+        thenSteps: [createAction('screenshot')],
+        elseSteps: [createAction('waitForElement')]
+      }
+    ],
+    elseSteps: [createAction('screenshot')]
+  }
+  demoIf.thenSteps[0].targetElement = 'input_triggerEmail_content'
+  demoIf.thenSteps[0].value = '{{email_user}}'
+  demoIf.thenSteps[1].targetElement = 'pop_up_submit'
+  demoIf.thenSteps[1].value = '{{element}}'
+  demoIf.thenSteps[2].thenSteps[0].targetElement = 'nested_screenshot'
+  demoIf.thenSteps[2].elseSteps[0].targetElement = '.fallback'
+  demoIf.elseSteps[0].targetElement = 'no_user_screenshot_{{times}}'
+
+  const afterActions = [
+    { ...createAction('waitURL'), targetElement: '{{list_url}}', wait: 'url包含', timeout: 10000 },
+    { ...createAction('back'), targetElement: '后退操作', value: '值/变量', timeout: 5000 }
+  ]
+  localSteps.value = [demoIf, ...afterActions]
+}
+
+if (props.initialSteps && Array.isArray(props.initialSteps)) {
+  localSteps.value = JSON.parse(JSON.stringify(props.initialSteps))
+} else {
+  initDemo()
+}
+
+// ---------- 操作方法（供递归组件使用）----------
+const addActionToArray = (arr) => {
+  arr.push(createAction())
+}
+
+const addIfToArray = (arr) => {
+  arr.push(createIfBlock())
+}
+
+const deleteStepFromArray = (step, arr) => {
+  const idx = arr.findIndex(s => s.id === step.id)
+  if (idx !== -1) arr.splice(idx, 1)
+}
+
+const addRootAction = () => {
+  localSteps.value.push(createAction())
+}
+
+const addRootIf = () => {
+  localSteps.value.push(createIfBlock())
+}
+
+const handleSave = () => {
+  // 深拷贝一份数据传递给父组件
+  const stepsCopy = JSON.parse(JSON.stringify(localSteps.value))
+  emit('save', stepsCopy)
+}
+
+// ---------- 递归子组件定义（必须在setup内定义并在模板中使用）----------
+const StepList = {
+  name: 'StepList',
+  props: {
+    steps: Array,
+    parentArray: Array
+  },
+  emits: ['add-action', 'add-if', 'delete-step'],
+  setup(props, { emit }) {
+    // 动作类型改变处理
+    const onActionKindChange = (step, newKind) => {
+      step.actionKind = newKind
+      if (!isDropdownAction(newKind)) {
+        if (PRESET_ELEMENTS.includes(step.targetElement)) step.targetElement = ''
+      } else {
+        if (!step.targetElement || !PRESET_ELEMENTS.includes(step.targetElement)) {
+          step.targetElement = PRESET_ELEMENTS[0]
+        }
+      }
+    }
+
+    const onTargetSelectChange = (step, event) => {
+      const value = event.target.value
+      if (value === '__custom__') {
+        const newVal = prompt('请输入自定义选择器/表达式:', step.targetElement)
+        if (newVal !== null) step.targetElement = newVal
+        else if (!PRESET_ELEMENTS.includes(step.targetElement)) step.targetElement = PRESET_ELEMENTS[0]
+      } else {
+        step.targetElement = value
+      }
+    }
+
+    const toggleElse = (ifBlock) => {
+      if (ifBlock.elseSteps === null) {
+        ifBlock.elseSteps = []
+      } else {
+        ifBlock.elseSteps = null
+      }
+    }
+
+    const deleteStep = (step, arr) => {
+      emit('delete-step', step, arr)
+    }
+
+    const addAction = (arr) => {
+      emit('add-action', arr)
+    }
+
+    const addIf = (arr) => {
+      emit('add-if', arr)
+    }
+
+    return {
+      PRESET_ELEMENTS,
+      ACTION_OPTIONS,
+      isDropdownAction,
+      onActionKindChange,
+      onTargetSelectChange,
+      toggleElse,
+      deleteStep,
+      addAction,
+      addIf
+    }
+  },
+  template: `
+    <div>
+      <div v-for="step in steps" :key="step.id" class="step-item">
+        <!-- 动作步骤 -->
+        <div v-if="step.type === 'action'">
+          <div class="step-row">
+            <span class="step-icon"><i class="fas fa-cog"></i></span>
+            <select class="action-select" :value="step.actionKind" @change="onActionKindChange(step, $event.target.value)">
+              <option v-for="opt in ACTION_OPTIONS" :value="opt.value">{{ opt.label }}</option>
+            </select>
+            <div v-if="isDropdownAction(step.actionKind)">
+              <select class="target-select" :value="step.targetElement" @change="onTargetSelectChange(step, $event)">
+                <option v-for="el in PRESET_ELEMENTS" :value="el">{{ el }}</option>
+                <option value="__custom__">自定义...</option>
+              </select>
+            </div>
+            <div v-else>
+              <input type="text" class="target-input" v-model="step.targetElement" placeholder="输入选择器/表达式">
+            </div>
+            <input type="text" class="value-input" v-model="step.value" placeholder="值/变量">
+            <input type="number" class="timeout-input" v-model.number="step.timeout" placeholder="超时">
+            <label style="display:flex; align-items:center; gap:4px;">
+              <input type="checkbox" v-model="step.continueOnError"> <span style="font-size:12px;">继续</span>
+            </label>
+            <input type="text" class="wait-input" v-model="step.wait" placeholder="等待条件">
+            <button class="btn-icon" @click="deleteStep(step, steps)" title="删除步骤"><i class="fas fa-trash-alt"></i></button>
+          </div>
+        </div>
+        <!-- If条件块 -->
+        <div v-else-if="step.type === 'if'" style="border-left: 3px solid #3b82f6;">
+          <div class="step-row if-header" style="background:#f0f9ff;">
+            <span class="step-icon"><i class="fas fa-code-branch"></i></span>
+            <input type="text" class="condition-input" v-model="step.condition" placeholder="条件表达式">
+            <span class="badge" style="background:#dbeafe;">then 分支</span>
+            <button class="btn-icon" style="margin-left:auto;" @click="deleteStep(step, steps)" title="删除If块"><i class="fas fa-trash-alt"></i> 删除If</button>
+          </div>
+          <div class="then-container">
+            <div style="font-size:12px; font-weight:500; margin-bottom:8px;"><i class="fas fa-arrow-right"></i> 满足条件时执行:</div>
+            <div class="nested-children">
+              <StepList :steps="step.thenSteps" :parentArray="step.thenSteps" @add-action="addAction" @add-if="addIf" @delete-step="deleteStep" />
+            </div>
+            <div style="margin-top:8px;">
+              <button class="add-step-btn" @click="addAction(step.thenSteps)"><i class="fas fa-plus"></i> 添加步骤 (then)</button>
+              <button class="add-step-btn add-if-btn" @click="addIf(step.thenSteps)"><i class="fas fa-code-branch"></i> 添加嵌套If (then)</button>
+            </div>
+          </div>
+          <div class="else-container">
+            <div style="font-size:12px; margin-bottom:6px;">
+              <i class="fas fa-ban"></i> else 分支 
+              <button class="btn-icon" @click="toggleElse(step)" style="font-size:11px;">
+                {{ step.elseSteps !== null ? '移除 else' : '添加 else' }}
+              </button>
+            </div>
+            <div v-if="step.elseSteps !== null">
+              <div class="nested-children">
+                <StepList :steps="step.elseSteps" :parentArray="step.elseSteps" @add-action="addAction" @add-if="addIf" @delete-step="deleteStep" />
+              </div>
+              <div style="margin-top:8px;">
+                <button class="add-step-btn" @click="addAction(step.elseSteps)"><i class="fas fa-plus"></i> 添加步骤 (else)</button>
+                <button class="add-step-btn add-if-btn" @click="addIf(step.elseSteps)"><i class="fas fa-code-branch"></i> 添加嵌套If (else)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `
+}
+
+// 注册递归组件（使其在模板中可用）
+</script>
+
+<style scoped>
+/* 所有样式与之前一致，为了组件隔离使用scoped */
+.flow-editor {
+  font-family: 'Inter', sans-serif;
+  background: #fff;
+  border-radius: 24px;
+  border: 1px solid #e9eef3;
+}
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 28px;
+  border-bottom: 1px solid #eef2f8;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.page-name-area {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.page-name-label {
+  font-size: 14px;
+  font-weight: 600;
+  background: #f8fafc;
+  padding: 6px 12px;
+  border-radius: 40px;
+}
+.page-name-field {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 15px;
+  width: 340px;
+  cursor: default;
+  color: #1e293b;
+}
+.readonly-badge {
+  font-size: 12px;
+  color: #6c86a3;
+}
+.save-btn {
+  background: #3b82f6;
+  border: none;
+  border-radius: 40px;
+  padding: 10px 28px;
+  font-weight: 600;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.save-btn:hover { background: #2563eb; }
+.info-section {
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid #eff3f8;
+}
+.combo-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  margin-bottom: 20px;
+}
+.info-item {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.info-label {
+  font-size: 13px;
+  font-weight: 600;
+  background: #f1f4f9;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.param-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.param-tag {
+  background: #eef2ff;
+  color: #1e40af;
+  padding: 4px 12px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-family: monospace;
+}
+.desc-text {
+  background: #f8fafc;
+  padding: 12px 16px;
+  border-radius: 16px;
+  border-left: 4px solid #3b82f6;
+  font-size: 14px;
+}
+.toolbar {
+  padding: 18px 28px 12px;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid #eef2f8;
+}
+.btn-primary, .btn-outline {
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 40px;
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-primary {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+}
+.btn-primary:hover { background: #2563eb; }
+.btn-outline:hover { background: #f8fafc; }
+.steps-container {
+  padding: 20px 28px 28px;
+}
+.step-item {
+  margin-bottom: 12px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #eef2f8;
+}
+.step-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  flex-wrap: wrap;
+}
+.step-icon {
+  width: 32px;
+  text-align: center;
+  color: #5b6e8c;
+}
+.action-select, .target-select, .target-input, .value-input, .timeout-input, .wait-input, .condition-input {
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  font-size: 13px;
+  background: white;
+}
+.action-select { width: 130px; }
+.target-select, .target-input { width: 200px; }
+.value-input { width: 150px; }
+.timeout-input { width: 90px; }
+.wait-input { width: 100px; }
+.condition-input { width: 260px; }
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #64748b;
+  padding: 4px 8px;
+  border-radius: 20px;
+}
+.btn-icon:hover { background: #f1f5f9; color: #ef4444; }
+.if-header {
+  background: #f0f9ff;
+  border-left: 4px solid #3b82f6;
+}
+.then-container, .else-container {
+  margin-left: 40px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  padding-left: 16px;
+}
+.then-container {
+  border-left: 2px solid #cbd5e1;
+}
+.else-container {
+  border-left: 2px dashed #eab308;
+}
+.nested-children {
+  margin-left: 0px;
+  margin-top: 8px;
+}
+.add-step-btn {
+  background: #f1f5f9;
+  border: 1px dashed #94a3b8;
+  border-radius: 32px;
+  padding: 6px 16px;
+  font-size: 12px;
+  margin-top: 8px;
+  margin-right: 12px;
+  cursor: pointer;
+}
+.add-if-btn {
+  background: #eef2ff;
+  color: #2563eb;
+  border-color: #3b82f6;
+}
+.flow-note {
+  margin: 16px 28px 24px;
+  padding-top: 12px;
+  border-top: 1px solid #eef2f8;
+  font-size: 12px;
+  color: #5b6e8c;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.badge {
+  background: #eef2ff;
+  padding: 4px 10px;
+  border-radius: 40px;
+  font-size: 12px;
+}
+.modal-mask {
+  position: fixed;
+  top:0;left:0;width:100%;height:100%;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  visibility: hidden;
+  opacity: 0;
+  transition: 0.2s;
+}
+.modal-mask.active { visibility: visible; opacity: 1; }
+.modal-content {
+  background: white;
+  width: 500px;
+  border-radius: 28px;
+  padding: 24px;
+}
+pre {
+  background: #f1f5f9;
+  padding: 12px;
+  border-radius: 16px;
+  overflow: auto;
+  font-size: 12px;
+}
+</style>
