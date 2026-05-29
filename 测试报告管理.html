@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>UI自动化测试平台 | 报告管理</title>
+    <!-- Google Fonts + Font Awesome 6 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            background: #f1f5f9;
+            color: #0f172a;
+            line-height: 1.5;
+        }
+
+        /* 整体布局 */
+        .app-wrapper {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶部导航 */
+        .top-nav {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .nav-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+        }
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon {
+            background: #3b82f6;
+            width: 34px;
+            height: 34px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            box-shadow: 0 4px 8px rgba(59,130,246,0.2);
+        }
+        .logo-text {
+            font-weight: 700;
+            font-size: 18px;
+            letter-spacing: -0.3px;
+            color: #0f172a;
+        }
+        .logo-text span {
+            font-weight: 500;
+            color: #475569;
+            font-size: 15px;
+        }
+        .nav-links {
+            display: flex;
+            gap: 28px;
+            align-items: center;
+        }
+        .nav-link {
+            font-size: 14px;
+            font-weight: 500;
+            color: #334155;
+            text-decoration: none;
+            transition: 0.2s;
+            padding: 6px 0;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+        .nav-link:hover {
+            color: #2563eb;
+        }
+        .user-avatar {
+            width: 38px;
+            height: 38px;
+            background: #eef2ff;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #3b82f6;
+            cursor: default;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 28px 28px 48px 28px;
+        }
+
+        .page-header {
+            margin-bottom: 28px;
+        }
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #5b6e8c;
+            margin-bottom: 16px;
+        }
+        .breadcrumb a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .title-section h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: -0.4px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .title-section h1 i {
+            color: #3b82f6;
+            font-size: 28px;
+        }
+
+        /* 卡片样式 */
+        .card {
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0, 0, 0, 0.05);
+            border: 1px solid #eef2f8;
+            overflow: hidden;
+        }
+
+        /* 筛选栏 */
+        .filter-bar {
+            padding: 20px 24px 16px 24px;
+            background: #ffffff;
+            border-bottom: 1px solid #eff3f8;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 20px;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 180px;
+        }
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #5b6e8c;
+        }
+        .filter-group input, .filter-group select {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+            transition: 0.2s;
+            outline: none;
+        }
+        .filter-group input:focus, .filter-group select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+        }
+        .filter-actions {
+            display: flex;
+            gap: 12px;
+            margin-left: auto;
+        }
+        .btn-primary, .btn-secondary {
+            border: none;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+        }
+        .btn-secondary:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+        }
+
+        /* 表格 */
+        .table-container {
+            overflow-x: auto;
+            padding: 0 0 4px 0;
+        }
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 1300px;
+        }
+        .report-table th {
+            text-align: left;
+            padding: 16px 14px;
+            background: #fbfdff;
+            font-weight: 600;
+            color: #1e293b;
+            border-bottom: 1px solid #eef2f8;
+        }
+        .report-table td {
+            padding: 14px 14px;
+            border-bottom: 1px solid #f1f4f9;
+            vertical-align: middle;
+        }
+        .report-table tr:hover td {
+            background-color: #fafcff;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #fee9e6;
+            color: #b91c1c;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 12px;
+            width: fit-content;
+        }
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .btn-icon-text {
+            background: transparent;
+            border: none;
+            font-size: 11.5px;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #475569;
+        }
+        .btn-detail:hover { background: #eef2ff; color: #2563eb; }
+        .btn-online:hover { background: #e6f7ec; color: #10b981; }
+        .btn-offline:hover { background: #fff4e6; color: #d97706; }
+        .btn-delete:hover { background: #fee2e2; color: #dc2626; }
+        .footer-stats {
+            padding: 14px 24px;
+            border-top: 1px solid #eff3f8;
+            font-size: 12px;
+            color: #5b6e8c;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* 模态窗样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(3px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.2s ease;
+        }
+        .modal-overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+        .modal-container {
+            background: #ffffff;
+            width: 90%;
+            max-width: 1100px;
+            max-height: 85vh;
+            border-radius: 28px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: modalFadeIn 0.2s ease;
+        }
+        @keyframes modalFadeIn {
+            from { transform: scale(0.97); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-header {
+            padding: 20px 28px;
+            border-bottom: 1px solid #eef2f8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+        }
+        .modal-header h3 {
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #94a3b8;
+            transition: 0.2s;
+        }
+        .modal-close:hover { color: #1e293b; }
+        .modal-body {
+            padding: 24px 28px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        /* 基础信息网格 */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px 24px;
+            background: #f8fafc;
+            padding: 18px 20px;
+            border-radius: 20px;
+            margin-bottom: 28px;
+        }
+        .info-item {
+            display: flex;
+            font-size: 13px;
+        }
+        .info-label {
+            width: 90px;
+            font-weight: 600;
+            color: #475569;
+        }
+        .info-value {
+            color: #0f172a;
+            font-weight: 500;
+        }
+        /* 统计卡片 */
+        .stats-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            margin-bottom: 24px;
+            background: #ffffff;
+            border: 1px solid #eef2f8;
+            border-radius: 20px;
+            padding: 20px;
+        }
+        .stat-box {
+            flex: 1;
+            text-align: center;
+            background: #f9fafc;
+            border-radius: 18px;
+            padding: 12px 8px;
+        }
+        .stat-number {
+            font-size: 28px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #5b6e8c;
+            margin-top: 6px;
+        }
+        .passrate-big {
+            font-size: 24px;
+            font-weight: 800;
+            color: #dc2626;
+        }
+        /* Tab 样式 */
+        .tab-container {
+            margin-top: 12px;
+            border: 1px solid #eef2f8;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .tab-headers {
+            display: flex;
+            background: #f8fafc;
+            border-bottom: 1px solid #eef2f8;
+        }
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #5b6e8c;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .tab-btn.active {
+            color: #3b82f6;
+            background: white;
+            border-bottom: 2px solid #3b82f6;
+        }
+        .tab-content {
+            padding: 20px;
+            background: white;
+            min-height: 200px;
+        }
+        .tab-pane {
+            display: none;
+        }
+        .tab-pane.active {
+            display: block;
+        }
+        .log-content {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 16px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .error-content {
+            background: #fff0f0;
+            border-left: 4px solid #dc2626;
+            padding: 14px;
+            border-radius: 12px;
+        }
+        .screenshot-placeholder {
+            background: #f1f5f9;
+            border-radius: 16px;
+            padding: 12px;
+            text-align: center;
+            border: 1px dashed #cbd5e1;
+        }
+        .screenshot-img {
+            max-width: 100%;
+            border-radius: 12px;
+            margin-top: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .cases-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            background: #ffffff;
+            border: 1px solid #edf2f7;
+            border-radius: 18px;
+            overflow: hidden;
+        }
+        .cases-table th {
+            background: #f8fafc;
+            padding: 12px 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        .cases-table td {
+            padding: 12px 12px;
+            border-top: 1px solid #eff3f8;
+        }
+        .case-status-fail {
+            color: #dc2626;
+            font-weight: 600;
+        }
+        .btn-sm {
+            background: #eef2ff;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-sm:hover {
+            background: #cbdff6;
+        }
+    </style>
+</head>
+<body>
+<div class="app-wrapper">
+    <div class="top-nav">
+        <div class="nav-container">
+            <div class="logo-area">
+                <div class="logo-icon"><i class="fas fa-vial"></i></div>
+                <div class="logo-text">AutoTest <span>UI自动化平台</span></div>
+            </div>
+            <div class="nav-links">
+                <a href="#" class="nav-link">仪表盘</a>
+                <a href="#" class="nav-link">测试任务</a>
+                <a href="#" class="nav-link active">报告管理</a>
+                <a href="#" class="nav-link">测试配置</a>
+                <div class="user-avatar"><i class="fas fa-user-circle"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="page-header">
+            <div class="breadcrumb"><a href="#"><i class="fas fa-home"></i> 首页</a> <i class="fas fa-chevron-right"></i> <span>UI自动化测试</span> <i class="fas fa-chevron-right"></i> <span style="font-weight:500;">报告管理</span></div>
+            <div class="title-section"><h1><i class="fas fa-chart-line"></i> 测试报告</h1><p>完整报告列表 · 支持在线预览(Allure)、离线下载及详情分析</p></div>
+        </div>
+        <div class="card">
+            <div class="filter-bar">
+                <div class="filter-group"><label><i class="fas fa-tag"></i> 项目名称</label><input type="text" id="projectSearchInput" placeholder="测试条件 / 项目名"></div>
+                <div class="filter-group"><label><i class="fas fa-map-marker-alt"></i> 地区</label><select id="regionSelect"><option value="all">全部地区</option><option value="华东">华东</option><option value="华南">华南</option><option value="华北">华北</option><option value="西南">西南</option><option value="西北">西北</option></select></div>
+                <div class="filter-actions"><button class="btn-primary" id="searchBtn"><i class="fas fa-search"></i> 搜索报告</button><button class="btn-secondary" id="resetBtn"><i class="fas fa-undo-alt"></i> 重置</button></div>
+            </div>
+            <div class="table-container"><table class="report-table" id="reportTable"><thead><tr><th>测试条件</th><th>状态</th><th>测试引擎</th><th>浏览器</th><th>总用例数</th><th>通过数</th><th>失败数</th><th>通过率</th><th>执行人</th><th>执行时间</th><th>执行时长</th><th>地区</th><th>操作</th></tr></thead><tbody id="tableBody"></tbody>}</div>
+            <div class="footer-stats"><span><i class="fas fa-database"></i> 共 <span id="totalCount">0</span> 条报告</span><span><i class="fas fa-info-circle"></i> 在线报告将跳转至 Allure 报告服务</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- 主模态窗 -->
+<div id="detailModal" class="modal-overlay"><div class="modal-container"><div class="modal-header"><h3><i class="fas fa-chart-bar"></i> 测试报告详情</h3><button class="modal-close" id="closeModalBtn">&times;</button></div><div class="modal-body" id="modalBody"></div></div></div>
+
+<script>
+    // ----- Mock 数据：包含完整报告信息及用例级明细（日志/错误/截图）-----
+    const rawReports = [
+        { id: 1, testCondition: "test", status: "失败", engine: "Playwright", browser: "Chrome", totalCases: 2, passed: 0, failed: 2, skipped: 0, executor: "jasminexh", execTime: "2026-05-03 19:16:28", duration: "34.6秒", region: "华东", startTime: "2026/5/3 19:16:28", endTime: "2026/5/3 19:17:02", mode: "有头模式", allureReportUrl: "/allure-reports/1/index.html" },
+        { id: 2, testCondition: "登录流程", status: "失败", engine: "Playwright", browser: "Chrome", totalCases: 3, passed: 0, failed: 3, skipped: 0, executor: "zhangwei", execTime: "2026-05-02 10:22:10", duration: "52.3秒", region: "华南", startTime: "2026/5/2 10:22:10", endTime: "2026/5/2 10:23:02", mode: "有头模式", allureReportUrl: "/allure-reports/2/index.html" },
+        { id: 3, testCondition: "酒店搜索", status: "失败", engine: "Playwright", browser: "Chrome", totalCases: 2, passed: 0, failed: 2, skipped: 0, executor: "lina", execTime: "2026-05-01 14:11:05", duration: "28.9秒", region: "华北", startTime: "2026/5/1 14:11:05", endTime: "2026/5/1 14:11:34", mode: "有头模式", allureReportUrl: "/allure-reports/3/index.html" },
+        { id: 4, testCondition: "订单支付", status: "失败", engine: "Playwright", browser: "Firefox", totalCases: 4, passed: 1, failed: 2, skipped: 1, executor: "wangpeng", execTime: "2026-04-30 09:42:00", duration: "67.2秒", region: "华东", startTime: "2026/4/30 09:42:00", endTime: "2026/4/30 09:43:07", mode: "有头模式", allureReportUrl: "/allure-reports/4/index.html" }
+    ];
+
+    // 用例明细 (包含日志、错误信息、截图)
+    const caseDetailsMap = {
+        1: [
+            { name: "验证首页加载", status: "失败", log: "[INFO] 开始加载首页\n[WARN] 超时10秒未响应\n[ERROR] 定位元素 .banner 失败\n[STACK] at Page.waitForSelector", error: "TimeoutError: Waiting for selector '.banner' failed: timeout 30000ms exceeded", screenshot: "https://picsum.photos/id/20/400/300?grayscale" },
+            { name: "点击登录按钮", status: "失败", log: "[INFO] 跳转登录页\n[ERROR] 未找到登录表单\n[DEBUG] 页面HTML结构异常", error: "ElementNotFound: 登录按钮不可见，可能被其他元素覆盖", screenshot: "https://picsum.photos/id/26/400/300" }
+        ],
+        2: [
+            { name: "输入用户名密码", status: "失败", log: "[INFO] 输入admin\n[INFO] 输入密码\n[ERROR] 提交失败，接口返回401", error: "ValidationError: 用户不存在或密码错误", screenshot: "https://picsum.photos/id/13/400/300" },
+            { name: "校验验证码", status: "失败", log: "[INFO] 请求验证码图片\n[ERROR] OCR识别超时，无法获取验证码", error: "Captcha识别超时，重试3次失败", screenshot: "https://picsum.photos/id/15/400/300" },
+            { name: "点击登录", status: "失败", log: "[WARN] 按钮存在但点击无响应\n[ERROR] JS事件未绑定", error: "JavaScript错误：未定义的函数", screenshot: "https://picsum.photos/id/3/400/300" }
+        ],
+        3: [
+            { name: "酒店搜索框输入", status: "失败", log: "[INFO] 输入'上海'\n[ERROR] 下拉框未出现，可能接口延迟", error: "Request failed 500: 后端服务异常", screenshot: "https://picsum.photos/id/104/400/300" },
+            { name: "点击搜索按钮", status: "失败", log: "[INFO] 点击事件已触发\n[ERROR] 页面无跳转，控制台报错", error: "NetworkError: 无法连接到搜索服务器", screenshot: "https://picsum.photos/id/169/400/300" }
+        ],
+        4: [
+            { name: "选择酒店房型", status: "成功", log: "[INFO] 房型选择成功，价格获取正常", error: "", screenshot: "" },
+            { name: "填写入住人信息", status: "失败", log: "[ERROR] 字段校验失败\n[INFO] 手机号输入不合法", error: "手机号格式错误，应输入11位数字", screenshot: "https://picsum.photos/id/12/400/300" },
+            { name: "提交订单", status: "失败", log: "[ERROR] 创建订单接口返回500\n[INFO] 请求参数校验失败", error: "Internal Server Error: 订单服务不可用", screenshot: "https://picsum.photos/id/29/400/300" },
+            { name: "支付环节", status: "跳过", log: "[WARN] 前置失败，跳过支付", error: "", screenshot: "" }
+        ]
+    };
+    // 补全默认
+    rawReports.forEach(r => { if (!caseDetailsMap[r.id]) caseDetailsMap[r.id] = [ { name: "默认测试用例", status: "失败", log: "无详细日志", error: "未知错误", screenshot: "" } ]; });
+
+    let reportsData = [...rawReports];
+    const tbody = document.getElementById('tableBody');
+    const totalSpan = document.getElementById('totalCount');
+    const projectSearchInput = document.getElementById('projectSearchInput');
+    const regionSelect = document.getElementById('regionSelect');
+    const searchBtn = document.getElementById('searchBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const detailModal = document.getElementById('detailModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
+    function calcPassRate(passed, total) { if(total===0) return "0%"; return `${Math.round((passed/total)*100)}%`; }
+
+    // 渲染主表格
+    function renderTable(data) {
+        if(!data.length){ tbody.innerHTML=`<tr class="empty-row"><td colspan="13">暂无报告数据</td></tr>`; totalSpan.innerText='0'; return; }
+        let html='';
+        data.forEach(r=>{
+            const passRate = calcPassRate(r.passed, r.totalCases);
+            html+=`<tr data-id="${r.id}"><td><strong>${escapeHtml(r.testCondition)}</strong></td><td><span class="status-badge"><i class="fas fa-times-circle"></i> 失败</span></td><td>${escapeHtml(r.engine)}</td><td>${escapeHtml(r.browser)}</td><td class="tc">${r.totalCases}</td><td class="pc">${r.passed}</td><td class="fc">${r.failed}</td><td class="pr">${passRate}</td><td>${escapeHtml(r.executor)}</td><td>${escapeHtml(r.execTime)}</td><td>${escapeHtml(r.duration)}</td><td>${escapeHtml(r.region)}</td>
+            <td class="action-buttons"><button class="btn-icon-text btn-detail" data-id="${r.id}"><i class="fas fa-eye"></i> 查看详情</button><button class="btn-icon-text btn-online" data-id="${r.id}"><i class="fas fa-globe"></i> 在线报告</button><button class="btn-icon-text btn-offline" data-id="${r.id}"><i class="fas fa-download"></i> 离线报告</button><button class="btn-icon-text btn-delete" data-id="${r.id}"><i class="fas fa-trash-alt"></i> 删除</button></td></tr>`;
+        });
+        tbody.innerHTML = html;
+        totalSpan.innerText = data.length;
+        attachTableEvents();
+    }
+
+    // 绑定表格操作按钮事件
+    function attachTableEvents() {
+        // 查看详情
+        document.querySelectorAll('.btn-detail').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); const id = parseInt(btn.dataset.id); showReportDetail(id); }));
+        // 在线报告：跳转 Allure 报告
+        document.querySelectorAll('.btn-online').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); const id = parseInt(btn.dataset.id); const report = reportsData.find(r => r.id === id); if(report && report.allureReportUrl) { window.open(report.allureReportUrl, '_blank'); } else { alert('Allure报告地址未配置，演示环境将打开示例报告'); window.open('https://demo.allure-report.io/', '_blank'); } }));
+        // 离线下载模拟
+        document.querySelectorAll('.btn-offline').forEach(btn => btn.addEventListener('click', () => alert('📥 离线报告下载功能：将导出包含执行日志、截图等完整数据的HTML/PDF包')));
+        // 删除报告
+        document.querySelectorAll('.btn-delete').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); const id = parseInt(btn.dataset.id); if(confirm('确认删除报告？')){ reportsData = reportsData.filter(r => r.id !== id); resetAndRender(); alert('已删除'); } }));
+    }
+
+    function filterReports(){ let keyword=projectSearchInput.value.trim().toLowerCase(); let region=regionSelect.value; let filtered=reportsData.filter(r=>(keyword===''||r.testCondition.toLowerCase().includes(keyword)) && (region==='all'||r.region===region)); renderTable(filtered); }
+    function resetAndRender(){ projectSearchInput.value=''; regionSelect.value='all'; renderTable(reportsData); }
+    searchBtn.addEventListener('click',filterReports); resetBtn.addEventListener('click',resetAndRender);
+    projectSearchInput.addEventListener('keypress',e=>{if(e.key==='Enter') filterReports();});
+
+    // 展示详情弹窗（包含基础信息、统计、用例列表 + Tab 详情）
+    function showReportDetail(reportId) {
+        const report = reportsData.find(r=>r.id===reportId);
+        if(!report) return;
+        const cases = caseDetailsMap[reportId] || [];
+        const passRate = calcPassRate(report.passed, report.totalCases);
+
+        let statsHtml = `<div class="info-grid">
+            <div class="info-item"><span class="info-label">报告ID：</span><span class="info-value">${report.id}</span></div>
+            <div class="info-item"><span class="info-label">测试套件：</span><span class="info-value">${escapeHtml(report.testCondition)}</span></div>
+            <div class="info-item"><span class="info-label">执行状态：</span><span class="info-value">失败</span></div>
+            <div class="info-item"><span class="info-label">执行者：</span><span class="info-value">${escapeHtml(report.executor)}</span></div>
+            <div class="info-item"><span class="info-label">测试引擎：</span><span class="info-value">${escapeHtml(report.engine)}</span></div>
+            <div class="info-item"><span class="info-label">浏览器：</span><span class="info-value">${escapeHtml(report.browser)}</span></div>
+            <div class="info-item"><span class="info-label">执行模式：</span><span class="info-value">${escapeHtml(report.mode||'有头模式')}</span></div>
+            <div class="info-item"><span class="info-label">执行时长：</span><span class="info-value">${escapeHtml(report.duration)}</span></div>
+            <div class="info-item"><span class="info-label">开始时间：</span><span class="info-value">${escapeHtml(report.startTime||report.execTime)}</span></div>
+            <div class="info-item"><span class="info-label">结束时间：</span><span class="info-value">${escapeHtml(report.endTime||'--')}</span></div>
+        </div>
+        <div class="stats-cards">
+            <div class="stat-box"><div class="stat-number">${report.totalCases}</div><div class="stat-label">总用例数</div></div>
+            <div class="stat-box"><div class="stat-number" style="color:#10b981">${report.passed}</div><div class="stat-label">通过数</div></div>
+            <div class="stat-box"><div class="stat-number" style="color:#dc2626">${report.failed}</div><div class="stat-label">失败数</div></div>
+            <div class="stat-box"><div class="stat-number">${report.skipped||0}</div><div class="stat-label">跳过数</div></div>
+            <div class="stat-box"><div class="passrate-big">${passRate}</div><div class="stat-label">通过率</div></div>
+        </div>
+        <div class="cases-section"><div class="cases-title"><i class="fas fa-list-ul"></i> 执行结果详情</div>
+        <table class="cases-table"><thead><tr><th>用例名称</th><th>执行状态</th><th>操作</th></tr></thead><tbody>`;
+        cases.forEach((c, idx) => {
+            const statusClass = c.status === '失败' ? 'case-status-fail' : (c.status==='成功'?'case-status-pass':'case-status-fail');
+            statsHtml += `<tr><td>${escapeHtml(c.name)}</td><td class="${statusClass}">${c.status}</td><td><button class="btn-sm viewCaseDetail" data-report="${reportId}" data-caseidx="${idx}">查看详情</button></td></tr>`;
+        });
+        statsHtml += `</tbody></table></div>`;
+        document.getElementById('modalBody').innerHTML = statsHtml;
+        detailModal.classList.add('active');
+
+        // 绑定用例查看详情按钮，弹出带Tab切换的子模态框
+        document.querySelectorAll('.viewCaseDetail').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const rid = parseInt(btn.dataset.report);
+                const cidx = parseInt(btn.dataset.caseidx);
+                const caseData = caseDetailsMap[rid]?.[cidx];
+                if(caseData) showCaseDetailWithTabs(caseData);
+                else alert('无详细数据');
+            });
+        });
+    }
+
+    // 带 Tab 切换的用例详情展示（日志、错误信息、失败截图）
+    function showCaseDetailWithTabs(caseData) {
+        // 创建临时覆盖层（子模态框）
+        const existingSub = document.getElementById('caseSubModal');
+        if(existingSub) existingSub.remove();
+        const subModal = document.createElement('div');
+        subModal.id = 'caseSubModal';
+        subModal.className = 'modal-overlay';
+        subModal.innerHTML = `
+            <div class="modal-container" style="max-width:750px">
+                <div class="modal-header"><h3><i class="fas fa-file-alt"></i> 用例执行详情</h3><button class="modal-close sub-close-btn">&times;</button></div>
+                <div class="modal-body">
+                    <div class="tab-container">
+                        <div class="tab-headers">
+                            <button class="tab-btn active" data-tab="log"><i class="fas fa-terminal"></i> 执行日志</button>
+                            <button class="tab-btn" data-tab="error"><i class="fas fa-exclamation-triangle"></i> 错误信息</button>
+                            <button class="tab-btn" data-tab="screenshot"><i class="fas fa-image"></i> 失败截图</button>
+                        </div>
+                        <div class="tab-content">
+                            <div class="tab-pane active" id="tab-log"><div class="log-content">${escapeHtml(caseData.log || '无日志数据')}</div></div>
+                            <div class="tab-pane" id="tab-error"><div class="error-content">${escapeHtml(caseData.error || '无错误信息')}</div></div>
+                            <div class="tab-pane" id="tab-screenshot"><div class="screenshot-placeholder">${caseData.screenshot ? `<img src="${caseData.screenshot}" class="screenshot-img" alt="失败截图">` : '<span>无截图数据</span>'}</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(subModal);
+        subModal.classList.add('active');
+
+        // Tab 切换逻辑
+        const tabs = subModal.querySelectorAll('.tab-btn');
+        const panes = subModal.querySelectorAll('.tab-pane');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.dataset.tab;
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                panes.forEach(pane => pane.classList.remove('active'));
+                document.getElementById(`tab-${targetTab}`).classList.add('active');
+            });
+        });
+        // 关闭按钮
+        const closeBtn = subModal.querySelector('.sub-close-btn');
+        closeBtn.addEventListener('click', () => { subModal.classList.remove('active'); setTimeout(() => subModal.remove(), 300); });
+        subModal.addEventListener('click', (e) => { if(e.target === subModal) { subModal.classList.remove('active'); setTimeout(() => subModal.remove(), 300); } });
+    }
+
+    // 关闭主模态窗
+    closeModalBtn.addEventListener('click', () => detailModal.classList.remove('active'));
+    detailModal.addEventListener('click', (e) => { if(e.target === detailModal) detailModal.classList.remove('active'); });
+
+    // 初始化
+    resetAndRender();
+</script>
+</body>
+</html>
